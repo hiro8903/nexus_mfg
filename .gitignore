@@ -1,0 +1,36 @@
+# GitHubで無視するファイルの設定 (.gitignore)
+# 詳細: https://help.github.com/articles/ignoring-files
+
+# Bundler の設定ファイルを無視
+/.bundle
+
+# すべてのログファイルと一時ファイルを無視
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# PIDファイルを無視（ディレクトリのみ維持）
+/tmp/pids/*
+!/tmp/pids/.keep
+
+# ストレージファイルを無視
+/storage/*
+!/storage/.keep
+/tmp/storage/*
+!/tmp/storage/.keep
+
+# SQLiteデータベースファイルを無視
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3-wal
+
+# macOS固有のシステムファイルを無視
+.DS_Store
+
+# 秘密鍵（セキュリティに関わるファイル）を無視
+/config/master.key
+/config/credentials/*.key
+
+# エージェント行動指針（ローカルで個別に管理）を無視
+docs/nexus_agent/

@@ -1,0 +1,599 @@
+// 製造業データモデル：理想設計図 (Ideal Target Schema)
+// Version: 3.1 (Strict ADR 007 compliance & Material Request Flow)
+
+// -----------------------------------------------------------------------------
+// I. 基礎・取引先・品目マスタ (Unified Item Model per ADR 007)
+// -----------------------------------------------------------------------------
+
+Table items as "品目マスタ" {
+  Note: "【品目マスタ】 原材料、製品、消耗品、工具等、すべての管理対象品目を一元管理する基本マスタです。"
+  id integer [pk, increment, note: '品目内部ID']
+  item_code varchar [unique, note: '品目コード。例: RM-001 (原材料), TG-002 (工具)']
+  name varchar [note: '品目名称。正式名称']
+  unit varchar [note: '基本単位。例: 枚, kg, L, m']
+  item_type integer [note: '品目区分。1:受託基材, 4:購入品, 10:消費財 等']
+  manufacturer_name varchar [note: 'メーカー/製造元名称']
+  is_lot_managed boolean [default: false, note: 'ロット管理(有効期限や製造履歴)が必要な場合はTrue']
+  managing_org_id integer [ref: > org_units.id, note: 'この品目を主管する部門。補充要求の起案責任を負う']
+  min_stock_level decimal [default: 0, note: '安全在庫数。これを下回ると自動的に補充アラート対象となる']
+  created_at datetime
+  updated_at datetime
+}
+
+Table item_boms as "品目構成マスタ" {
+  Note: "【品目構成マスタ】 製品や部品がどの材料から構成されているか（レシピ・BOM）を管理します。"
+  id integer [pk, increment]
+  parent_item_id integer [ref: > items.id, note: '親品目（成果物）']
+  child_item_id integer [ref: > items.id, note: '子品目（構成要素）']
+  quantity decimal [note: '構成数']
+  note text
+}
+
+Table process_masters as "工程マスタ" {
+  Note: "【工程マスタ】 製造プロセスにおける個別の工程（加工、組立、検査等）を定義します。"
+  id integer [pk, increment]
+  process_code varchar [unique, note: '工程コード']
+  name varchar
+}
+
+Table skill_masters as "スキルマスタ" {
+  Note: "【スキルマスタ】 従業員が保有する技能や資格（溶接、フォークリフト等）を定義します。"
+  id integer [pk, increment]
+  skill_code varchar [unique]
+  name varchar
+}
+
+Table business_partners as "相手先名称マスタ" {
+  Note: "【相手先名称マスタ】 顧客、仕入先、外注先など、取引が発生するすべての外部組織を管理します。"
+  id integer [pk, increment]
+  partner_code varchar [unique, note: '取引先コード。例: C001(顧客), V001(仕入先)']
+  name varchar [note: '取引先名称（正式名称）']
+  short_name varchar [note: '略称（例：パナソニック）']
+  name_kana varchar [note: 'フリガナ（五十音ソート用）']
+  search_keywords varchar [note: '検索タグ群']
+  is_customer boolean [default: false, note: '顧客フラグ']
+  is_supplier boolean [default: false, note: '仕入先・プロバイダーフラグ']
+  is_manufacturer boolean [default: false, note: 'メーカー（製造元）フラグ']
+  parent_id integer [ref: > business_partners.id, note: '親会社（ホールディングス対応）']
+  trade_status integer [default: 0, note: '0:取引中, 1:停止, 2:終了']
+  corporate_number varchar [note: '法人番号(13桁)']
+  invoice_registration_number varchar [note: 'インボイス登録番号']
+  capital_amount bigint [note: '資本金']
+  business_type varchar [note: '事業形態(メーカー, 商社等)']
+  postal_code varchar
+  address varchar
+  phone_number varchar
+  fax_number varchar
+  website_url varchar
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table delivery_destinations as "発送先マスタ" {
+  Note: "【発送先マスタ】 取引先に関連付けられた物理的な納品先拠点を管理します。"
+  id integer [pk, increment]
+  business_partner_id integer [ref: > business_partners.id]
+  destination_code varchar [unique, note: '納入先コード']
+  name varchar [note: '拠点名正式']
+  short_name varchar [note: '拠点名略称']
+  name_kana varchar
+  search_keywords varchar
+  postal_code varchar
+  address varchar
+  phone_number varchar
+  fax_number varchar
+  email varchar [note: '出荷通知送信用']
+  contact_person_org varchar [note: '部署名']
+  contact_person_title varchar [note: '役職']
+  contact_person_name varchar [note: '担当者名']
+  honorific_title varchar [note: '敬称（様/御中）']
+  is_active boolean [default: true]
+  is_default boolean [default: false]
+  shipping_instruction varchar [note: '配送業者への指示']
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table locations as "ロケーションマスタ" {
+  Note: "【ロケーションマスタ】 倉庫、棚、ライン上の保管場所など、物品が物理的に存在する場所を定義します。"
+  id integer [pk, increment]
+  site_id integer [ref: > sites.id, note: '所属する拠点']
+  location_code varchar [note: 'ロケーションコード。例: WH01-A1']
+  name varchar [note: '表示名称']
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table engineering_specs as "技術情報マスタ" {
+  Note: "【技術情報マスタ】 品目に付随する技術的な仕様や保管条件、危険物情報等を管理します。"
+  id integer [pk, increment]
+  item_id integer [ref: > items.id]
+  recommended_temp varchar
+  hazard_class varchar
+  expiry_months integer
+}
+
+// -----------------------------------------------------------------------------
+// II. 品質基準
+// -----------------------------------------------------------------------------
+
+Table inspection_items as "検査項目マスタ" {
+  Note: "【検査項目マスタ】 品目の品質検査に使用する具体的な項目（寸法、色、硬度等）を定義します。"
+  id integer [pk, increment]
+  item_code varchar [unique]
+  name varchar
+  unit varchar
+}
+
+Table standard_inspection_norms as "標準検査基準マスタ" {
+  Note: "【標準検査基準マスタ】 工程ごとの品目の合格基準（閾値）を管理します。"
+  id integer [pk, increment]
+  item_id integer [ref: > items.id]
+  process_id integer [ref: > process_masters.id]
+  inspection_item_id integer [ref: > inspection_items.id]
+  quality_grade varchar
+  min_value decimal
+  max_value decimal
+}
+
+// -----------------------------------------------------------------------------
+// III. ユーザー・組織・権限 (Identity/RBAC)
+// -----------------------------------------------------------------------------
+
+Table users as "ユーザーマスタ" {
+  Note: "【ユーザーマスタ】 システムを利用する全従業員、および外部ユーザーを管理します。"
+  id integer [pk, increment]
+  user_code varchar [unique, note: '社員番号やログインID。例: EMP001']
+  name varchar [note: '氏名']
+  password_digest varchar
+  user_category integer [note: '0:内部社員, 10:外部協力, 80:システム']
+  employment_type integer [note: '0:正社員, 10:契約, 20:派遣']
+  business_partner_id integer [ref: > business_partners.id, note: '外部ユーザーの場合の所属先']
+  internal_memo text [note: '社内用の非公開メモ']
+  discarded_at datetime [note: '退職・削除日時。値があれば削除済み扱い']
+  created_at datetime
+  updated_at datetime
+}
+
+Table sites as "拠点マスタ" {
+  Note: "【拠点マスタ】 工場、事務所、倉庫等の物理的な拠点を管理します。"
+  id integer [pk, increment]
+  site_code varchar [unique]
+  name varchar
+  postal_code varchar
+  address varchar
+  phone_number varchar
+  fax_number varchar
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table org_units as "組織単位マスタ" {
+  Note: "【組織単位マスタ】 部署、プロジェクト、委員会等の組織構造（階層）を管理します。"
+  id integer [pk, increment]
+  parent_id integer [ref: > org_units.id]
+  org_code varchar [unique]
+  name varchar
+  org_type integer [note: '0:部署 1:PJ 2:委員会']
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table org_unit_permissions as "組織権限マスタ" {
+  Note: "【組織権限マスタ】 組織単位ごとに付与される役割・権限を定義します。"
+  id integer [pk, increment]
+  org_unit_id integer [ref: > org_units.id]
+  role integer [note: '役割ID(100単位)']
+  permission_key varchar
+  permission_level integer [note: '0:R 1:E 2:A']
+}
+
+Table assignments as "配属辞令履歴" {
+  Note: "【配属辞令履歴】 従業員がどの拠点・組織に、いつからいつまで所属しているかの履歴を管理します。"
+  id integer [pk, increment]
+  user_id integer [ref: > users.id]
+  site_id integer [ref: > sites.id]
+  org_unit_id integer [ref: > org_units.id]
+  job_title varchar [note: '役職称号']
+  role integer [note: '役割ID(5:Manager等)']
+  is_primary boolean [default: true]
+  internal_memo text
+  start_date date
+  end_date date
+  created_at datetime
+  updated_at datetime
+}
+
+Table user_skills as "ユーザー保有スキル" {
+  Note: "【ユーザー保有スキル】 各ユーザーがどのような技能（フォークリフト、溶接、特定機械操作等）を保有しているかを管理します。"
+  id integer [pk, increment]
+  user_id integer [ref: > users.id, note: 'スキルの保有者']
+  skill_id integer [ref: > skill_masters.id, note: '認定スキル']
+  skill_level integer [note: '熟練度レベル。例: 1(見習い)〜5(職人)']
+  acquired_at date [note: 'スキル取得日・認定日']
+}
+
+// -----------------------------------------------------------------------------
+// IV. 資材要求・承認・在庫 (Materials Workflow)
+// -----------------------------------------------------------------------------
+
+Table internal_usage_codes as "独自用途番号マスタ" {
+  Note: "【独自用途番号マスタ】 現場で使いやすい名称で定義された用途（例：営繕用、清掃用）を管理します。"
+  id integer [pk, increment]
+  code varchar [unique]
+  name varchar
+  accounting_code_id integer [ref: > accounting_usage_codes.id, note: '経理部用途番号との紐付け']
+}
+
+Table accounting_usage_codes as "経理用途番号マスタ" {
+  Note: "【経理用途番号マスタ】 経理部が管理する公式な予算科目・用途番号です。現場用の独自用途番号と紐付きます。"
+  id integer [pk, increment]
+  code varchar [unique]
+  name varchar
+  description text
+}
+
+Table material_requests as "資材要求(ヘッダ)" {
+  Note: "【資材要求(ヘッダ)】 現場や管理部門からの資材要求を管理するヘッダデータです。"
+  id integer [pk, increment]
+  created_by_id integer [ref: > users.id, note: 'システムにデータを打ち込んだ人']
+  applicant_id integer [ref: > users.id, note: '実際にその資材を必要としている担当者。問い合わせ先となる']
+  
+  request_org_id integer [ref: > org_units.id, note: '要求を出した部署']
+  budget_org_id integer [ref: > org_units.id, note: '費用を負担する予算部署（コストセンター）']
+  target_org_id integer [ref: > org_units.id, note: '依頼先。例: 資材部, 購買課']
+  
+  transaction_type integer [note: '取引区分。1:購入(通常), 2:自社支給(加工外注用), 3:客先支給(無償)']
+  
+  usage_code_id integer [ref: > internal_usage_codes.id, note: '独自の用途番号。経理コードへ自動変換される']
+  
+  purpose text [note: '要求目的。例: プロジェクトAの試作に使用']
+  reason text [note: '要求理由。例: 在庫枯渇のため、または設備故障']
+  remarks text [note: '備考。自由記述']
+  
+  status integer [note: '現在の進行状態。0:起案, 10:承認待ち, 40:承認済, 90:差戻']
+  ringi_needed boolean [default: false, note: '稟議フラグ。高額案件等の場合に最終承認者がONにする']
+  
+  created_at datetime
+  updated_at datetime
+}
+
+Table material_request_lines as "資材要求明細" {
+  Note: "【資材要求明細】 資材要求の具体的な品目、数量、希望納期等の明細データを管理します。"
+  id integer [pk, increment]
+  request_id integer [ref: > material_requests.id]
+  
+  item_id integer [ref: > items.id, note: 'マスタ品の場合']
+  item_name_free_text varchar [note: '未登録品：名称（〇〇一式 等）']
+  item_spec_free_text text [note: '未登録品：仕様・型番（細目）']
+  
+  quotation_id integer [ref: > purchase_quotations.id, note: '選択された購入見積（あれば）']
+  
+  // 最小単位管理のための項目
+  order_unit varchar [note: '発注単位 (例: ケース, セット)']
+  order_quantity decimal [note: '発注数量']
+  
+  packing_factor decimal [note: '入数（1発注単位あたりの最小単位数。例: 300）']
+  base_unit varchar [note: '基本管理単位 (例: 枚, 個, kg)']
+  total_base_quantity decimal [note: '基本単位換算合計 (発注数量 * 入数)']
+  
+  unit_price decimal [note: '発注単位単価']
+  base_unit_price decimal [note: '基本単位換算単価 (原価計算用)']
+  tax_rate decimal [default: 0.10, note: '適用税率']
+  
+  required_date date [note: '希望納期']
+  
+  status integer [note: '0:未処理, 10:引当済, 20:発注済, 30:入荷済']
+}
+
+Table approval_routes as "承認ルートマスタ" {
+  Note: "【承認ルートマスタ】 組織や要求内容に応じた承認経路を定義します。"
+  id integer [pk, increment]
+  org_unit_id integer [ref: > org_units.id]
+  name varchar [note: 'ルート名(基本承認/特注等)']
+  is_active boolean [default: true]
+}
+
+Table approval_route_steps as "承認ルート詳細(ステップ)" {
+  Note: "【承認ルート詳細(ステップ)】 承認ルート内の具体的な順序（課長→部長等）と承認担当職制を管理します。"
+  id integer [pk, increment]
+  route_id integer [ref: > approval_routes.id]
+  step_number integer [note: '承認順序']
+  org_unit_id integer [ref: > org_units.id, note: '承認担当組織(親組織も指定可)']
+  role integer [note: '承認役割(ADR 009: 役職等)']
+  is_final_step boolean [default: false, note: '最終承認者フラグ']
+}
+
+
+Table approval_activities as "承認活動履歴" {
+  Note: "【承認活動履歴】 資材要求に対する承認、差戻、修正等の具体的なアクション履歴を記録します。"
+  id integer [pk, increment]
+  request_id integer [ref: > material_requests.id, note: '要求ヘッダへの紐付け']
+  approver_id integer [ref: > users.id]
+  step_name varchar [note: '課長/部長/判定/稟議']
+  action varchar [note: '承認/差戻/再申請/稟議上げ/修正']
+  comment text
+  created_at datetime
+}
+
+Table inventories as "在庫データ" {
+  Note: "【在庫データ】 品目・部署・場所ごとの現在の在庫残高を管理します。"
+  id integer [pk, increment]
+  item_id integer [ref: > items.id, note: '在庫品目']
+  org_unit_id integer [ref: > org_units.id, note: 'この在庫を所有（計上）している部署']
+  location_id integer [ref: > locations.id, note: '保管されている物理的な場所']
+  quantity decimal [note: '現在の実在庫数']
+  reserved_quantity decimal [default: 0, note: '引当済みの数。未出荷・未払い出しの状態']
+}
+
+Table material_request_fulfillments as "資材要求充当・追跡データ" {
+  Note: "【資材要求充当・追跡データ】 要求明細がどの在庫引当や発注明細によって満たされたかを追跡します。"
+  id integer [pk, increment]
+  material_request_line_id integer [ref: > material_request_lines.id, note: '対象明細']
+  
+  // 充当先（いずれかが入る）
+  purchase_order_line_id integer [ref: > purchase_order_lines.id]
+  inventory_move_id integer [ref: > inventory_moves.id]
+  
+  quantity decimal [note: '充当/引当数量']
+  allocated_at datetime
+}
+
+Table inventory_moves as "在庫移動データ" {
+  Note: "【在庫移動データ】 在庫の入庫、出庫、移送（保管場所移動）の全履歴を記録します。"
+  id integer [pk, increment]
+  material_request_line_id integer [ref: > material_request_lines.id, note: '要求明細への紐付け']
+  receipt_line_id integer [ref: > receipt_lines.id, note: '入荷明細への紐付け（入荷時）']
+  move_type varchar [note: '出庫/入庫/移動']
+  item_id integer [ref: > items.id, note: 'マスタ品の場合']
+  item_name_free_text varchar [note: 'マスタ未登録品の場合の記録']
+  quantity decimal
+  from_location_id integer [ref: > locations.id]
+  to_location_id integer [ref: > locations.id]
+  created_at datetime
+  updated_at datetime
+}
+
+// -----------------------------------------------------------------------------
+// V. 取引実行（購買・受注・生産）
+// -----------------------------------------------------------------------------
+
+Table purchase_price_masters as "購入単価マスタ" {
+  Note: "【購入単価マスタ】 取引先（仕入先）ごとの品目購入単価やリードタイムを管理します。"
+  id integer [pk, increment]
+  item_id integer [ref: > items.id]
+  partner_id integer [ref: > business_partners.id]
+  packing_unit varchar [note: '入り目']
+  unit_price decimal
+  lead_time_days integer
+  created_at datetime
+}
+
+Table purchase_quotations as "購入見積取引データ" {
+  Note: "【購入見積取引データ】 個別の資材要求に対して取得された見積回答の内容を記録します。"
+  id integer [pk, increment]
+  material_request_line_id integer [ref: > material_request_lines.id]
+  partner_id integer [ref: > business_partners.id]
+  unit_price decimal
+  created_at datetime
+}
+
+Table purchase_orders as "発注データ" {
+  Note: "【発注データ】 仕入先に対して発行された注文のヘッダ情報（注文日、ステータス等）を管理します。"
+  id integer [pk, increment]
+  po_code varchar [unique]
+  partner_code varchar [ref: > business_partners.partner_code]
+  order_date date
+  applicant_id integer [ref: > users.id, note: '発注担当者（表示・署名用）']
+  status integer [note: '0:ドラフト, 10:注文済, 20:入荷済']
+}
+
+Table purchase_order_confirmations as "発注回答データ" {
+  Note: "発注後に仕入先から得られた「納期回答」や「価格変更の通知」を履歴として保持します。"
+  id integer [pk, increment]
+  po_line_id integer [ref: > purchase_order_lines.id, note: '対応する発注明細']
+  confirmed_quantity decimal [note: '仕入先から回答のあった供給可能数量']
+  confirmed_unit_price decimal [note: '仕入先から回答のあった再見積単価']
+  delivery_date date [note: '仕入先が約束した回答納期']
+  answered_at datetime [note: '回答を受け取った日時']
+  note text [note: '回答に付随する連絡事項']
+}
+
+Table purchase_order_lines as "発注明細データ" {
+  Note: "【発注明細データ】 発注に含まれる個別の品目、数量、単価等の明細情報を管理します。"
+  id integer [pk, increment]
+  po_id integer [ref: > purchase_orders.id]
+  item_id integer [ref: > items.id, note: 'マスタ品の場合']
+  item_name_free_text varchar [note: '未登録品：名称']
+  item_spec_free_text text [note: '未登録品：仕様・型番']
+  quantity decimal [note: '発注数量']
+  unit_price decimal [note: '発注単価']
+  tax_rate decimal [default: 0.10, note: '適用税率']
+}
+
+Table receipt_headers as "入荷・受領(ヘッダ)" {
+  Note: "【入荷・受領(ヘッダ)】 資材の入庫・受領時の共通情報（受領日、検査者等）を管理します。"
+  id integer [pk, increment]
+  po_id integer [ref: > purchase_orders.id, note: '単一発注に対する入荷']
+  vendor_id integer [ref: > business_partners.id, note: '複数発注をまとめる場合']
+  received_at datetime
+  inspector_id integer [ref: > users.id]
+}
+
+Table receipt_lines as "入荷明細データ" {
+  Note: "【入荷明細データ】 資材の受け入れ（受領・検収）の詳細記録です。分納や、複数発注の一括入荷に対応します。"
+  id integer [pk, increment]
+  header_id integer [ref: > receipt_headers.id, note: '入荷ヘッダへの紐付け']
+  po_line_id integer [ref: > purchase_order_lines.id, note: '対応する発注明細。これを元に入荷待ち残が計算される']
+  quantity decimal [note: '受領・検収した数量']
+  unit_price decimal [note: '最終的な受入単価。発注時と異なる場合はここを正とする']
+  tax_rate decimal [note: '適用税率（入荷時点の税率）']
+  status integer [note: '0:受領済, 10:検収済(検査合格), 90:返品済']
+}
+
+Table receipt_returns as "返品・不良品データ" {
+  Note: "【返品・不良品データ】 入荷時の受取拒否や、後日発覚した不良品の返品、およびその後の対応（代品・キャンセル）を管理します。"
+  id integer [pk, increment]
+  receipt_line_id integer [ref: > receipt_lines.id]
+  return_type integer [note: '1:受取拒否, 2:不良品返品']
+  quantity decimal
+  returned_at datetime
+  reason text
+  replacement_receipt_line_id integer [ref: > receipt_lines.id, note: '代品入荷時の紐付け']
+  outcome_type integer [note: '1:代品待ち, 2:キャンセル']
+}
+
+Table supplier_invoice_headers as "仕入請求(ヘッダ)" {
+  Note: "【仕入請求(ヘッダ)】 仕入先から届いた請求書の共通情報（合計金額、支払期日等）を管理します。"
+  id integer [pk, increment]
+  partner_id integer [ref: > business_partners.id]
+  invoice_number varchar [note: '請求書番号']
+  invoice_type integer [note: '0:通常, 1:赤伝']
+  billing_date date
+  payment_due_date date
+  total_amount decimal [note: '合計金額']
+  status integer [note: '0:未処理, 1:照合済, 2:支払済']
+}
+
+Table supplier_invoice_lines as "仕入請求明細" {
+  Note: "【仕入請求明細】 個別の入荷明細に基づいた請求の内訳です（集約請求対応）。"
+  id integer [pk, increment]
+  header_id integer [ref: > supplier_invoice_headers.id, note: '請求ヘッダへの紐付け']
+  receipt_line_id integer [ref: > receipt_lines.id, note: '紐づく入荷明細。どの入荷に対する請求かを特定']
+  receipt_return_id integer [ref: > receipt_returns.id, note: '返品に伴うマイナス請求（赤伝）の場合の紐付け']
+  amount decimal [note: '税抜金額']
+  tax_amount decimal [note: '消費税額']
+  tax_rate decimal [note: '税率']
+}
+
+Table sales_orders as "受注データ" {
+  Note: "【受注データ】 顧客からの注文情報を管理します。"
+  id integer [pk, increment]
+  so_code varchar [unique]
+  partner_code varchar [ref: > business_partners.partner_code]
+  order_date date
+}
+
+Table sales_order_lines as "受注明細データ" {
+  Note: "【受注明細データ】 顧客注文の具体的な品目、数量、単価等を管理します。"
+  id integer [pk, increment]
+  so_id integer [ref: > sales_orders.id]
+  item_id integer [ref: > items.id]
+  destination_code varchar [ref: > delivery_destinations.destination_code]
+  quantity decimal
+  unit_price decimal
+}
+
+Table work_orders as "作業指示データ" {
+  Note: "【作業指示データ】 製造現場に対する具体的な生産・加工の指示内容を管理します。"
+  id integer [pk, increment]
+  wo_code varchar [unique]
+  so_line_id integer [ref: > sales_order_lines.id]
+  item_id integer [ref: > items.id]
+  process_id integer [ref: > process_masters.id]
+}
+
+Table work_results as "作業実績データ" {
+  Note: "【作業実績データ】 現場での作業時間、完了数、良否等の実績を記録します。加工・検査・出荷の共通基盤です。"
+  id integer [pk, increment]
+  wo_id integer [ref: > work_orders.id]
+  user_id integer [ref: > users.id]
+  start_at datetime
+  completed_at datetime
+  good_quantity decimal [note: '良品数']
+  bad_quantity decimal [note: '不良数']
+  result_status varchar
+}
+
+Table work_order_inputs as "作業投入実績" {
+  Note: "【作業投入実績】 その工程でどの材料・基材をいくつ使用（投入）したかを記録し、トレースを繋ぎます。"
+  id integer [pk, increment]
+  work_result_id integer [ref: > work_results.id]
+  item_id integer [ref: > items.id, note: '投入した材料']
+  lot_number varchar [note: '投入した材料のロット番号']
+  quantity decimal [note: '投入数量']
+}
+
+Table inspection_results as "検査結果データ" {
+  Note: "【検査結果データ】 検査工程の実績に紐づく、具体的な計測値や合否判定の記録です。"
+  id integer [pk, increment]
+  work_result_id integer [ref: > work_results.id]
+  inspection_item_id integer [ref: > inspection_items.id]
+  measured_value decimal [note: '計測された数値']
+  is_pass boolean [note: '合否']
+  inspector_note text [note: '検査員メモ']
+}
+
+Table shipping_details as "出荷物流詳細" {
+  Note: "【出荷物流詳細】 出荷工程の実績に紐づく、運送会社や送り状番号等の物流情報です。"
+  id integer [pk, increment]
+  work_result_id integer [ref: > work_results.id]
+  carrier_partner_id integer [ref: > business_partners.id, note: '運送会社']
+  tracking_number varchar [note: '送り状番号']
+  shipping_label_note text
+}
+
+Table sales_invoice_headers as "売上請求(ヘッダ)" {
+  Note: "【売上請求(ヘッダ)】 顧客へ発行する請求書データです。複数の出荷実績をまとめることができます。"
+  id integer [pk, increment]
+  partner_id integer [ref: > business_partners.id]
+  invoice_number varchar [unique]
+  billing_date date
+  payment_due_date date
+  total_amount decimal
+  status integer [note: '0:未発行, 1:発行済, 2:入金済']
+}
+
+Table sales_invoice_lines as "売上請求明細" {
+  Note: "【売上請求明細】 請求の内容（どの出荷実績に対する請求か）を管理します。"
+  id integer [pk, increment]
+  header_id integer [ref: > sales_invoice_headers.id]
+  work_result_id integer [ref: > work_results.id, note: '出荷工程の実績への紐付け']
+  amount decimal [note: '税抜金額']
+  tax_amount decimal
+  tax_rate decimal
+}
+
+Table sales_price_masters as "販売単価マスタ" {
+  Note: "【販売単価マスタ】 取引先（顧客）ごとの品目販売単価（定価・契約単価）を管理します。"
+  id integer [pk, increment]
+  item_id integer [ref: > items.id]
+  partner_id integer [ref: > business_partners.id]
+  unit_price decimal
+  valid_from date
+  valid_to date
+  created_at datetime
+}
+
+Table sales_quotes as "販売見積(ヘッダ)" {
+  Note: "【販売見積(ヘッダ)】 顧客への販売単価提示や商談を管理します。"
+  id integer [pk, increment]
+  quote_number varchar [unique]
+  partner_id integer [ref: > business_partners.id]
+  applicant_id integer [ref: > users.id, note: '営業担当者']
+  status integer [note: '0:ドラフト, 10:提示中, 40:成約, 90:失注']
+  valid_until date [note: '見積有効期限']
+  total_amount decimal
+  created_at datetime
+  updated_at datetime
+}
+
+Table sales_quote_lines as "販売見積明細" {
+  Note: "【販売見積明細】 見積に含まれる個別の品目と単価情報を管理します。"
+  id integer [pk, increment]
+  quote_id integer [ref: > sales_quotes.id]
+  item_id integer [ref: > items.id]
+  quantity decimal
+  unit_price decimal
+  tax_rate decimal [default: 0.10]
+}

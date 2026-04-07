@@ -1,0 +1,185 @@
+// -----------------------------------------------------------------------------
+// [業務別抜粋図] 03. 組織・品目・リソース・基盤マスタ
+// -----------------------------------------------------------------------------
+
+TableGroup personnel_and_org {
+  users
+  sites
+  org_units
+  assignments
+  sessions
+  org_unit_permissions
+}
+
+TableGroup item_masters {
+  items
+  item_boms
+  item_attachments
+  engineering_specs
+}
+
+TableGroup partner_masters {
+  business_partners
+  delivery_destinations
+}
+
+// --- 人事・組織基盤（列注釈付きフルスペック） ---
+
+Table users as "ユーザーマスタ" {
+  Note: "【ユーザーマスタ】 システムを利用する全従業員、および外部ユーザーを管理します。"
+  id integer [pk, increment]
+  user_code varchar [unique, note: '社員番号やログインID。例: EMP001']
+  name varchar [note: '氏名']
+  user_category integer [note: '0:内部社員, 10:外部協力, 80:システム']
+  employment_type integer [note: '0:正社員, 10:契約, 20:派遣']
+  business_partner_id integer [note: '外部ユーザーの場合の所属先']
+  internal_memo text [note: '社内用の非公開メモ']
+  discarded_at datetime [note: '退職・削除日時。値があれば削除済み扱い']
+  created_at datetime
+  updated_at datetime
+}
+
+Table sites as "拠点マスタ" {
+  Note: "【拠点マスタ】 工場、事務所、倉庫等の物理的な拠点を管理します。"
+  id integer [pk, increment]
+  site_code varchar [unique]
+  name varchar
+  postal_code varchar
+  address varchar
+  phone_number varchar
+  fax_number varchar
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table org_units as "組織単位マスタ" {
+  Note: "【組織単位マスタ】 部署、プロジェクト、委員会等の組織構造（階層）を管理します。"
+  id integer [pk, increment]
+  parent_id integer
+  org_code varchar [unique]
+  name varchar
+  org_type integer [note: '0:部署 1:PJ 2:委員会']
+  internal_memo text
+  discarded_at datetime
+  created_at datetime
+  updated_at datetime
+}
+
+Table assignments as "配属辞令履歴" {
+  Note: "【配属辞令履歴】 従業員がどの拠点・組織に、いつからいつまで所属しているかの履歴を管理します。"
+  id integer [pk, increment]
+  user_id integer
+  site_id integer
+  org_unit_id integer
+  job_title varchar [note: '役職称号']
+  role integer [note: '役割ID(5:Manager等)']
+  is_primary boolean [default: true]
+  internal_memo text
+  start_date date
+  end_date date
+  created_at datetime
+  updated_at datetime
+}
+
+Table sessions as "認証セッション" {
+  Note: "【認証セッション】 ログイン中のユーザーセッション情報を管理します。"
+  id integer [pk, increment]
+  user_id integer
+}
+
+Table org_unit_permissions as "組織権限マスタ" {
+  Note: "【組織権限マスタ】 組織単位ごとに付与される役割・権限を定義します。"
+  id integer [pk, increment]
+  org_unit_id integer
+  role integer [note: '役割ID(100単位)']
+  permission_key varchar
+  permission_level integer [note: '0:R 1:E 2:A']
+}
+
+// --- 品目・技術基盤 ---
+
+Table items as "品目マスタ" {
+  Note: "【品目マスタ】 原材料、製品、消耗品、工具等、すべての管理対象品目を一元管理する基本マスタです。"
+  id integer [pk, increment, note: '品目内部ID']
+  item_code varchar [unique, note: '品目コード。例: RM-001 (原材料), TG-002 (工具)']
+  name varchar [note: '品目名称。正式名称']
+  unit varchar [note: '基本単位。例: 枚, kg, L, m']
+  item_type integer [note: '品目区分。1:受託基材, 4:購入品, 10:消費財 等']
+  manufacturer_name varchar [note: 'メーカー/製造元名称']
+  is_lot_managed boolean [default: false, note: 'ロット管理(有効期限や製造履歴)が必要な場合はTrue']
+  managing_org_id integer [note: 'この品目を主管する部門。補充要求の起案責任を負う']
+  min_stock_level decimal [default: 0, note: '安全在庫数。これを下回ると自動的に補充アラート対象となる']
+  created_at datetime
+  updated_at datetime
+}
+
+Table item_boms as "品目構成マスタ" {
+  Note: "【品目構成マスタ】 製品や部品がどの材料から構成されているか（レシピ・BOM）を管理します。"
+  id integer [pk, increment]
+  parent_item_id integer [note: '親品目（成果物）']
+  child_item_id integer [note: '子品目（構成要素）']
+  quantity decimal [note: '構成数']
+  note text
+}
+
+Table item_attachments as "品目関連ファイル" {
+  Note: "【品目関連ファイル】 図面、マニュアル、写真など、品目に紐付く各種ファイルを管理します。"
+  id integer [pk, increment]
+  item_id integer
+}
+
+Table engineering_specs as "技術情報マスタ" {
+  Note: "【技術情報マスタ】 品目に付随する技術的な仕様や保管条件、危険物情報等を管理します。"
+  id integer [pk, increment]
+  item_id integer
+  recommended_temp varchar
+  hazard_class varchar
+  expiry_months integer
+}
+
+// --- 取引先基盤 ---
+
+Table business_partners as "相手先名称マスタ" {
+  Note: "【相手先名称マスタ】 顧客、仕入先、外注先など、取引が発生するすべての外部組織を管理します。"
+  id integer [pk, increment]
+  partner_code varchar [unique, note: '取引先コード。例: C001(顧客), V001(仕入先)']
+  name varchar [note: '取引先名称（正式名称）']
+  short_name varchar [note: '略称（例：パナソニック）']
+  is_customer boolean [default: false, note: '顧客フラグ']
+  is_supplier boolean [default: false, note: '仕入先・プロバイダーフラグ']
+  is_manufacturer boolean [default: false, note: 'メーカー（製造元）フラグ']
+  trade_status integer [default: 0, note: '0:取引中, 1:停止, 2:終了']
+  created_at datetime
+  updated_at datetime
+}
+
+Table delivery_destinations as "発送先マスタ" {
+  Note: "【発送先マスタ】 取引先に関連付けられた物理的な納品先拠点を管理します。"
+  id integer [pk, increment]
+  business_partner_id integer
+  destination_code varchar [unique, note: '納入先コード']
+  name varchar [note: '拠点名正式']
+  postal_code varchar
+  address varchar
+  email varchar [note: '出荷通知送信用']
+  contact_person_name varchar [note: '担当者名']
+  is_active boolean [default: true]
+}
+
+// --- リレーション ---
+Ref: users.business_partner_id > business_partners.id
+Ref: org_units.parent_id > org_units.id
+Ref: assignments.user_id > users.id
+Ref: assignments.site_id > sites.id
+Ref: assignments.org_unit_id > org_units.id
+Ref: sessions.user_id > users.id
+Ref: org_unit_permissions.org_unit_id > org_units.id
+Ref: items.managing_org_id > org_units.id
+Ref: item_boms.parent_item_id > items.id
+Ref: item_boms.child_item_id > items.id
+Ref: item_attachments.item_id > items.id
+Ref: engineering_specs.item_id > items.id
+Ref: business_partners.parent_id > business_partners.id
+Ref: delivery_destinations.business_partner_id > business_partners.id
