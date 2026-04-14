@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusMfg Design B - Minimal Factory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .card {
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px -4px rgba(0, 0, 0, 0.06);
+            border: 1px solid #f1f5f9;
+        }
+        .card-hover:hover {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+        <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#e6f4fc',  /* Slightly more distinct pale blue for row hovers */
+                            100: '#c7e6fd',
+                            200: '#a3d9fd',
+                            300: '#8ed1fc', /* User's light */
+                            400: '#28a6f5',
+                            500: '#0b9bf0',
+                            600: '#0693e3', /* User's base */
+                            700: '#0472b5', /* Deeper, distinct hover color */
+                            800: '#03558a',
+                            900: '#023a63',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+    <div class="flex">
+        <!-- ===== サイドバー ===== -->
+        <aside class="w-64 h-screen bg-white border-r border-slate-200/80 sticky top-0 flex flex-col overflow-y-auto">
+            <!-- ロゴ -->
+            <div class="p-6 flex items-center gap-3">
+                <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-md shadow-brand-200">
+                    <span class="text-white font-bold text-xl">N</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900">NexusMfg</h1>
+                    <span class="text-[10px] text-slate-400 font-medium">製造管理システム</span>
+                </div>
+            </div>
+
+            <!-- ナビゲーション -->
+            <nav class="flex-1 px-3 mt-2">
+                <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 mb-2">メイン</div>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 bg-brand-50 text-brand-700 rounded-xl font-semibold mb-0.5">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>
+                    概要
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H4z"/></svg>
+                    在庫管理
+                </a>
+
+                <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 mt-6 mb-2">調達</div>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">
+                    資材要求
+                    <span class="ml-auto text-[11px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full font-bold">14</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">
+                    発注管理
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">
+                    入荷処理
+                </a>
+
+                <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 mt-6 mb-2">マスタ</div>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">品目マスタ</a>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">取引先マスタ</a>
+                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-slate-500 hover:bg-slate-50 rounded-xl font-medium mb-0.5 transition-all">組織・拠点</a>
+            </nav>
+
+            <!-- ユーザー -->
+            <div class="p-4 m-3 bg-slate-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">TY</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-bold text-slate-800 truncate">田中 裕太</div>
+                        <div class="text-[11px] text-slate-400">製造部 / 管理者</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ===== メインコンテンツ ===== -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- トップバー -->
+            <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 py-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 tracking-tight">ファクトリー概要</h2>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-xs font-medium text-slate-400">システム稼働中 · 2026年4月8日（火）</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- 検索 -->
+                    <div class="relative">
+                        <input type="text" placeholder="品目・伝票番号で検索..." class="w-60 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300">
+                        <svg class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                    <!-- 通知 -->
+                    <button class="relative w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center shadow-sm shadow-rose-200">3</span>
+                    </button>
+                    <!-- 新規アクション -->
+                    <button class="px-5 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-100 hover:bg-brand-700 hover:-translate-y-0.5 transition-all">
+                        + 新規作成
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-8 space-y-8">
+                <!-- ===== 統計カード ===== -->
+                <section>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div class="card card-hover p-5 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 text-white border-0 cursor-pointer">
+                            <div class="text-brand-100 text-xs font-semibold mb-1">未処理の資材要求</div>
+                            <div class="text-3xl font-bold mb-3">14<span class="text-base font-normal text-brand-200 ml-1">件</span></div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-medium">⚠ 3件が期限超過</span>
+                            </div>
+                        </div>
+                        <div class="card card-hover p-5 rounded-2xl cursor-pointer">
+                            <div class="text-slate-400 text-xs font-semibold mb-1">発注残（未入荷）</div>
+                            <div class="text-3xl font-bold text-slate-800">38<span class="text-base font-normal text-slate-400 ml-1">件</span></div>
+                            <div class="mt-2 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded w-fit">↓ 先週比 -8%</div>
+                        </div>
+                        <div class="card card-hover p-5 rounded-2xl cursor-pointer">
+                            <div class="text-slate-400 text-xs font-semibold mb-1">在庫アラート</div>
+                            <div class="text-3xl font-bold text-rose-500">7<span class="text-base font-normal text-slate-400 ml-1">品目</span></div>
+                            <div class="mt-2 text-[11px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded w-fit">安全在庫割れ</div>
+                        </div>
+                        <div class="card card-hover p-5 rounded-2xl cursor-pointer">
+                            <div class="text-slate-400 text-xs font-semibold mb-1">本月の調達率</div>
+                            <div class="text-3xl font-bold text-slate-800">94.2<span class="text-base font-normal text-slate-400">%</span></div>
+                            <div class="h-2 w-full bg-slate-100 rounded-full mt-3 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full" style="width: 94.2%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== データテーブル：資材要求一覧 ===== -->
+                <section class="card rounded-2xl overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">資材要求一覧</h3>
+                            <span class="text-xs text-slate-400">全 42 件中 1–10 件を表示</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <!-- フィルター -->
+                            <select class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                                <option>全ステータス</option>
+                                <option>承認待ち</option>
+                                <option>発注済み</option>
+                                <option>入荷済み</option>
+                            </select>
+                            <button class="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-100 hover:bg-brand-700 transition-all">
+                                + 新規要求
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50/50 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-3">要求番号</th>
+                                    <th class="px-6 py-3">品目名</th>
+                                    <th class="px-6 py-3">数量</th>
+                                    <th class="px-6 py-3">要求日</th>
+                                    <th class="px-6 py-3">希望納期</th>
+                                    <th class="px-6 py-3">申請者</th>
+                                    <th class="px-6 py-3">ステータス</th>
+                                    <th class="px-6 py-3">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                <tr class="hover:bg-brand-50/30 transition-all group cursor-pointer">
+                                    <td class="px-6 py-4 font-mono text-brand-600 text-xs font-bold">MR-2026-0042</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-800 group-hover:text-brand-600 transition-colors">アルミニウム合金 A6061-T6</div>
+                                        <div class="text-[11px] text-slate-400">カテゴリ: 非鉄金属</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-medium">500 kg</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/07</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/14</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-[10px] font-bold text-pink-600">SH</div>
+                                            <span class="text-sm">佐藤 花子</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-amber-50 text-amber-600 rounded-lg text-[11px] font-bold">承認待ち</span></td>
+                                    <td class="px-6 py-4">
+                                        <button class="text-brand-500 hover:text-brand-700 text-xs font-bold hover:underline">詳細 →</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-brand-50/30 transition-all group cursor-pointer">
+                                    <td class="px-6 py-4 font-mono text-brand-600 text-xs font-bold">MR-2026-0041</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-800 group-hover:text-brand-600">ステンレス鋼板 SUS304 2B</div>
+                                        <div class="text-[11px] text-slate-400">カテゴリ: 鉄鋼</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-medium">1,200 kg</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/06</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/20</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-sky-100 flex items-center justify-center text-[10px] font-bold text-sky-600">YT</div>
+                                            <span class="text-sm">山田 太郎</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-sky-50 text-sky-600 rounded-lg text-[11px] font-bold">発注済み</span></td>
+                                    <td class="px-6 py-4"><button class="text-brand-500 hover:text-brand-700 text-xs font-bold hover:underline">詳細 →</button></td>
+                                </tr>
+                                <tr class="hover:bg-brand-50/30 transition-all group cursor-pointer">
+                                    <td class="px-6 py-4 font-mono text-brand-600 text-xs font-bold">MR-2026-0040</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-800 group-hover:text-brand-600">六角ボルト M10×30 (SUS)</div>
+                                        <div class="text-[11px] text-slate-400">カテゴリ: ファスナー</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-medium">2,000 本</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/05</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/12</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-600">SI</div>
+                                            <span class="text-sm">鈴木 一郎</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-bold">入荷済み</span></td>
+                                    <td class="px-6 py-4"><button class="text-brand-500 hover:text-brand-700 text-xs font-bold hover:underline">詳細 →</button></td>
+                                </tr>
+                                <tr class="hover:bg-brand-50/30 transition-all group cursor-pointer">
+                                    <td class="px-6 py-4 font-mono text-brand-600 text-xs font-bold">MR-2026-0039</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-800 group-hover:text-brand-600">銅パイプ φ15×1.0t</div>
+                                        <div class="text-[11px] text-slate-400">カテゴリ: 非鉄金属</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-medium">300 m</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/04</td>
+                                    <td class="px-6 py-4 text-rose-500 font-semibold">2026/04/08</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center text-[10px] font-bold text-violet-600">TM</div>
+                                            <span class="text-sm">高橋 美咲</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-rose-50 text-rose-500 rounded-lg text-[11px] font-bold">期限超過</span></td>
+                                    <td class="px-6 py-4"><button class="text-brand-500 hover:text-brand-700 text-xs font-bold hover:underline">詳細 →</button></td>
+                                </tr>
+                                <tr class="hover:bg-brand-50/30 transition-all group cursor-pointer">
+                                    <td class="px-6 py-4 font-mono text-brand-600 text-xs font-bold">MR-2026-0038</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-800 group-hover:text-brand-600">フラットバー SS400 50×6</div>
+                                        <div class="text-[11px] text-slate-400">カテゴリ: 鉄鋼</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-medium">800 kg</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/03</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/17</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-[10px] font-bold text-pink-600">SH</div>
+                                            <span class="text-sm">佐藤 花子</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-purple-50 text-purple-500 rounded-lg text-[11px] font-bold">差戻し</span></td>
+                                    <td class="px-6 py-4"><button class="text-brand-500 hover:text-brand-700 text-xs font-bold hover:underline">詳細 →</button></td>
+                                </tr>
+                                <tr class="hover:bg-brand-50/30 transition-all group cursor-pointer">
+                                    <td class="px-6 py-4 font-mono text-brand-600 text-xs font-bold">MR-2026-0037</td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-slate-800 group-hover:text-brand-600">切削油 スミコー NC-11</div>
+                                        <div class="text-[11px] text-slate-400">カテゴリ: 消耗品</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-medium">20 L</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/02</td>
+                                    <td class="px-6 py-4 text-slate-500">2026/04/09</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-600">TY</div>
+                                            <span class="text-sm">田中 裕太</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-bold">入荷済み</span></td>
+                                    <td class="px-6 py-4"><button class="text-brand-500 hover:text-brand-700 text-xs font-bold hover:underline">詳細 →</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- ページネーション -->
+                    <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-400 font-medium">1–10 / 42 件</span>
+                        <div class="flex items-center gap-1">
+                            <button class="px-3 py-1.5 text-xs text-slate-400 rounded-lg" disabled>← 前へ</button>
+                            <button class="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-lg font-bold shadow-sm">1</button>
+                            <button class="px-3 py-1.5 text-xs text-slate-500 rounded-lg hover:bg-slate-100 font-medium">2</button>
+                            <button class="px-3 py-1.5 text-xs text-slate-500 rounded-lg hover:bg-slate-100 font-medium">3</button>
+                            <span class="px-2 text-slate-300">…</span>
+                            <button class="px-3 py-1.5 text-xs text-slate-500 rounded-lg hover:bg-slate-100 font-medium">5</button>
+                            <button class="px-3 py-1.5 text-xs text-slate-500 rounded-lg hover:bg-slate-100 font-medium">次へ →</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== フォームセクション ===== -->
+                <section class="card rounded-2xl overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100">
+                        <h3 class="font-bold text-slate-800 text-lg">資材要求 新規作成</h3>
+                        <p class="text-xs text-slate-400 mt-1">必要な資材の要求を作成します。承認ワークフローに送信されます。</p>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- 品目選択 -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5">品目 <span class="text-rose-400">*</span></label>
+                                <select class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300">
+                                    <option value="">品目を選択してください</option>
+                                    <option>アルミニウム合金 A6061-T6</option>
+                                    <option>ステンレス鋼板 SUS304 2B</option>
+                                    <option>六角ボルト M10×30 (SUS)</option>
+                                    <option>銅パイプ φ15×1.0t</option>
+                                </select>
+                            </div>
+                            <!-- 数量 -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5">数量 <span class="text-rose-400">*</span></label>
+                                <div class="flex gap-2">
+                                    <input type="number" value="500" class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300">
+                                    <select class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 w-24">
+                                        <option>kg</option>
+                                        <option>本</option>
+                                        <option>m</option>
+                                        <option>L</option>
+                                        <option>個</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- 希望納期 -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5">希望納期 <span class="text-rose-400">*</span></label>
+                                <input type="date" value="2026-04-14" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300">
+                            </div>
+                            <!-- 取引区分 -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1.5">取引区分</label>
+                                <div class="flex gap-4 mt-1.5">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="txn_type_b" value="1" checked class="accent-brand-600 w-4 h-4">
+                                        <span class="text-sm font-medium text-slate-600">購入</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="txn_type_b" value="2" class="accent-brand-600 w-4 h-4">
+                                        <span class="text-sm font-medium text-slate-600">自社支給</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="txn_type_b" value="3" class="accent-brand-600 w-4 h-4">
+                                        <span class="text-sm font-medium text-slate-600">客先支給</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 備考 -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1.5">備考</label>
+                            <textarea rows="3" placeholder="特記事項があれば記入してください..." class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300 resize-none"></textarea>
+                        </div>
+                        <!-- チェックボックス -->
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" class="mt-0.5 accent-brand-600 w-4 h-4">
+                            <span class="text-sm text-slate-500">この要求に対して、自動的に最安値の仕入先を提案する（推奨）</span>
+                        </label>
+                    </div>
+                    <!-- ボタン群 -->
+                    <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <button class="px-4 py-2 text-sm text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 font-medium">下書き保存</button>
+                        <div class="flex gap-3">
+                            <button class="px-5 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">キャンセル</button>
+                            <button class="px-5 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-100 hover:bg-brand-700 hover:-translate-y-0.5 transition-all">申請する</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== ボタン & バッジ コンポーネント集 ===== -->
+                <section class="card rounded-2xl p-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-6">UIコンポーネント一覧</h3>
+                    <!-- ボタン -->
+                    <div class="mb-8">
+                        <div class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">ボタン</div>
+                        <div class="flex flex-wrap gap-3">
+                            <button class="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-md shadow-brand-100 hover:bg-brand-700 hover:-translate-y-0.5 transition-all">プライマリ</button>
+                            <button class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">セカンダリ</button>
+                            <button class="px-5 py-2.5 bg-transparent border border-brand-200 text-brand-600 rounded-xl text-sm font-bold hover:bg-brand-50 transition-all">アウトライン</button>
+                            <button class="px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-100 hover:bg-emerald-600 transition-all">承認</button>
+                            <button class="px-5 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-bold shadow-md shadow-rose-100 hover:bg-rose-600 transition-all">削除</button>
+                            <button class="px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold shadow-md shadow-amber-100 hover:bg-amber-600 transition-all">差戻し</button>
+                            <button class="px-5 py-2.5 bg-slate-100 text-slate-400 rounded-xl text-sm font-bold cursor-not-allowed" disabled>無効</button>
+                        </div>
+                    </div>
+                    <!-- バッジ -->
+                    <div class="mb-8">
+                        <div class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">ステータスバッジ</div>
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold">承認待ち</span>
+                            <span class="px-3 py-1 bg-sky-50 text-sky-600 rounded-lg text-xs font-bold">発注済み</span>
+                            <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold">入荷済み</span>
+                            <span class="px-3 py-1 bg-rose-50 text-rose-500 rounded-lg text-xs font-bold">期限超過</span>
+                            <span class="px-3 py-1 bg-purple-50 text-purple-500 rounded-lg text-xs font-bold">差戻し</span>
+                            <span class="px-3 py-1 bg-slate-100 text-slate-400 rounded-lg text-xs font-bold">下書き</span>
+                        </div>
+                    </div>
+                    <!-- アラート -->
+                    <div>
+                        <div class="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">通知・アラート</div>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3 p-4 bg-brand-50 border border-brand-100 rounded-xl">
+                                <div class="w-8 h-8 bg-brand-100 rounded-lg flex items-center justify-center text-brand-600 text-sm font-bold">i</div>
+                                <span class="text-sm text-brand-700">MR-2026-0041 の発注が完了しました。</span>
+                            </div>
+                            <div class="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                                <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-sm font-bold">!</div>
+                                <span class="text-sm text-amber-700">銅パイプ φ15×1.0t の在庫が安全在庫を下回りました。</span>
+                            </div>
+                            <div class="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-xl">
+                                <div class="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600 text-sm font-bold">✕</div>
+                                <span class="text-sm text-rose-700">MR-2026-0039 の納期が超過しています。仕入先へ連絡してください。</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
