@@ -10,4 +10,3 @@ class CreateUsers < ActiveRecord::Migration[8.1]
     add_index :users, :user_code, unique: true
   end
 end
-
