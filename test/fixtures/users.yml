@@ -1,0 +1,4 @@
+one:
+  user_code: "EMP001"
+  name: "山田 太郎"
+  password_digest: <%= BCrypt::Password.create("password") %>
