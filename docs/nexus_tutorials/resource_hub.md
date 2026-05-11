@@ -48,6 +48,12 @@
 - [**rails-i18n 公式リポジトリ (GitHub): ja.yml の実例**](https://github.com/svenfuchs/rails-i18n/blob/master/rails/locale/ja.yml)
     - 全世界で使われるRails標準設定の日本語版。共通エラー（`blank`, `taken` 等）や日時フォーマット（`time.formats`）等の実際の構成が全て網羅されており、MECEな `ja.yml` を構成するための究極の一次ソース（お手本）となります。
 
+<a id="tech-rubocop"></a>
+- [**RuboCop 公式ドキュメント**](https://docs.rubocop.org/rubocop/index.html)
+    - Ruby の静的コード解析・整形ツール。コミュニティが策定した Ruby スタイルガイドに基づくコードチェックと自動修正を提供します。
+- [**RuboCop Configuration (GitHub): Default Cops**](https://github.com/rubocop/rubocop/blob/master/config/default.yml)
+    - RuboCop の設定ファイルの実例（デフォルト設定）。実際にどのようなルール（Cop）が用意されているかを確認できます。`Style/FrozenStringLiteralComment`, `Layout/EndOfLine`, `Layout/IndentationWidth` など、本チュートリアルで遭遇した具体的なルールの定義が全てここに記載されています。
+
 ## 3. OS 基本コマンド（ターミナル操作）
 
 <a id="tech-terminal-fs"></a>
