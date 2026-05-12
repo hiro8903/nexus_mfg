@@ -1,0 +1,25 @@
+ja:
+  app:
+    name: "Nexus MFG"
+    tagline: "製造現場をつなぐ業務システム"
+
+  sessions:
+    new:
+      title: "Nexus MFG ログイン"
+      user_code_label: "ユーザーコード（社員番号）"
+      user_code_placeholder: "例: EMP001"
+      password_label: "パスワード"
+      password_placeholder: "パスワードを入力"
+      submit: "ログイン"
+    create:
+      alert: "ユーザーコードまたはパスワードが正しくありません。"
+
+  home:
+    index:
+      title: "ダッシュボード"
+      welcome: "ようこそ、Nexus MFG へ"
+      description: "製造現場の業務管理システムです。"
+
+  navigation:
+    logout: "ログアウト"
+    logout_confirm: "ログアウトしますか？"

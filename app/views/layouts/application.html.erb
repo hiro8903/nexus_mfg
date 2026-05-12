@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
   <head>
     <title><%= content_for(:title) || "Nexus Mfg" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -24,6 +24,19 @@
   </head>
 
   <body>
+    <%# ナビゲーションバー: 認証済みユーザーにのみ表示 %>
+    <% if authenticated? %>
+      <nav class="fixed top-0 left-0 right-0 z-10 bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between">
+        <span class="font-semibold text-gray-800"><%= t("app.name") %></span>
+        <div class="flex items-center gap-4">
+          <%= button_to t("navigation.logout"), session_path,
+                method: :delete,
+                data: { turbo_confirm: t("navigation.logout_confirm") },
+                class: "text-sm text-gray-600 hover:text-red-600 cursor-pointer bg-transparent border-0" %>
+        </div>
+      </nav>
+    <% end %>
+
     <main class="container mx-auto mt-28 px-5 flex">
       <%= yield %>
     </main>
